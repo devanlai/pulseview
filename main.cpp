@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <fstream>
 #include <getopt.h>
+#include <tuple>
 #include <vector>
 
 #ifdef ENABLE_FLOW
@@ -78,6 +79,7 @@ using std::ifstream;
 using std::ofstream;
 using std::shared_ptr;
 using std::string;
+using std::tuple;
 
 #if ENABLE_STACKTRACE
 QString stacktrace_filename;
@@ -159,6 +161,7 @@ void usage()
 		"  -d, --driver                    Specify the device driver to use\n"
 		"  -D, --dont-scan                 Don't auto-scan for devices, use -d spec only\n"
 		"  -i, --input-file                Load input from file\n"
+		"  -s, --setup-file                Load pulseview setup for previous input from file\n"
 		"  -I, --input-format              Input format\n"
 		"  -c, --clean                     Don't restore previous sessions on startup\n"
 		"\n", PV_BIN_NAME);
@@ -169,7 +172,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	shared_ptr<sigrok::Context> context;
 	string open_file_format, driver;
-	vector<string> open_files;
+	vector<tuple<string,string>> open_files;
 	bool restore_sessions = true;
 	bool do_scan = true;
 	bool show_version = false;
@@ -199,6 +202,7 @@ int main(int argc, char *argv[])
 			{"driver", required_argument, nullptr, 'd'},
 			{"dont-scan", no_argument, nullptr, 'D'},
 			{"input-file", required_argument, nullptr, 'i'},
+			{"setup-file", required_argument, nullptr, 's'},
 			{"input-format", required_argument, nullptr, 'I'},
 			{"clean", no_argument, nullptr, 'c'},
 			{"log-to-stdout", no_argument, nullptr, 's'},
@@ -206,7 +210,7 @@ int main(int argc, char *argv[])
 		};
 
 		const int c = getopt_long(argc, argv,
-			"h?VDcl:d:i:I:", long_options, nullptr);
+			"h?VDcl:d:i:s:I:", long_options, nullptr);
 		if (c == -1)
 			break;
 
@@ -250,7 +254,16 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'i':
-			open_files.emplace_back(optarg);
+			open_files.emplace_back(optarg, "");
+			break;
+
+		case 's':
+			if (open_files.empty()) {
+				qDebug() << "ERROR: setup file specified before input file.";
+				break;
+			}
+			// Update the setup filename for the last input file
+			std::get<1>(open_files.back()) = optarg;
 			break;
 
 		case 'I':
@@ -266,7 +279,7 @@ int main(int argc, char *argv[])
 	argv += optind;
 
 	for (int i = 0; i < argc; i++)
-		open_files.emplace_back(argv[i]);
+		open_files.emplace_back(argv[i], "");
 
 	qRegisterMetaType<pv::util::Timestamp>("util::Timestamp");
 	qRegisterMetaType<uint64_t>("uint64_t");
@@ -332,9 +345,15 @@ int main(int argc, char *argv[])
 
 			if (open_files.empty())
 				w.add_default_session();
-			else
-				for (string& open_file : open_files)
-					w.add_session_with_file(open_file, open_file_format);
+			else {
+				for (tuple<string,string>& open_file : open_files) {
+					string& input_filename = std::get<0>(open_file);
+					string& setup_filename = std::get<1>(open_file);
+					w.add_session_with_file(input_filename,
+						setup_filename,
+						open_file_format);
+				}
+			}
 
 #ifdef ENABLE_SIGNALS
 			if (SignalHandler::prepare_signals()) {
