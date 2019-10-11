@@ -176,9 +176,12 @@ bool StoreSession::start()
 
 		map<string, Glib::VariantBase> options = options_;
 
-		if (!output_format_->test_flag(OutputFlag::INTERNAL_IO_HANDLING))
-			output_stream_.open(file_name_, ios_base::binary |
-					ios_base::trunc | ios_base::out);
+		if (!output_format_->test_flag(OutputFlag::INTERNAL_IO_HANDLING)) {
+			ios_base::openmode mode = ios_base::trunc | ios_base::out;
+			if (!output_format_->test_flag(OutputFlag::NEWLINE_TRANSLATION))
+				mode |= ios_base::binary;
+			output_stream_.open(file_name_, mode);
+		}
 
 		output_ = output_format_->create_output(file_name_, device, options);
 		auto meta = context->create_meta_packet(
