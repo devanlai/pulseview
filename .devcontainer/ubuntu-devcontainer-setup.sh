@@ -7,7 +7,7 @@
 #   sigrok-cli
 #   PulseView
 sudo apt-get install -y autoconf autoconf-archive automake check cmake \
- default-jdk doxygen g++ gcc git-core libboost-filesystem-dev \
+ default-jdk dh-autoreconf doxygen g++ gcc git-core libboost-filesystem-dev \
  libboost-serialization-dev libboost-system-dev libboost-test-dev \
  libftdi1-dev libglib2.0-dev libglibmm-2.4-dev libqt5svg5-dev libtool \
  libusb-1.0-0-dev libzip-dev make nettle-dev pkg-config python3-dev \
