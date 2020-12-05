@@ -1,4 +1,4 @@
 {
     "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
-    "postCreateCommand": "./ubuntu-devcontainer-setup.sh"
+    "postCreateCommand": "sh ./ubuntu-devcontainer-setup.sh 2>&1 ~/setup.log"
 }
