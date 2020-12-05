@@ -1,6 +1,14 @@
 {
     "name": "PulseView / Sigrok Dev Container",
     "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
-    "postCreateCommand": "/bin/sh ./.devcontainer/ubuntu-devcontainer-setup.sh 2>&1 ~/setup.log",
+
+    // Set *default* container specific settings.json values on container create.
+	"settings": { 
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+
+    // Run the setup script to install all build dependencies
+    "postCreateCommand": "/bin/sh ./.devcontainer/ubuntu-devcontainer-setup.sh",
+
     "remoteUser": "vscode"
 }
