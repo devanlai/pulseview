@@ -1,4 +1,6 @@
 {
+    "name": "PulseView / Sigrok Dev Container",
     "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
-    "postCreateCommand": "sh ./ubuntu-devcontainer-setup.sh 2>&1 ~/setup.log"
+    "postCreateCommand": "/bin/sh ./.devcontainer/ubuntu-devcontainer-setup.sh 2>&1 ~/setup.log",
+    "remoteUser": "vscode"
 }
