@@ -102,6 +102,7 @@ public:
 	QAction* action_restore_setup() const;
 	QAction* action_save_setup() const;
 	QAction* action_connect() const;
+	QAction* action_reload_decoders() const;
 
 private:
 	void run_stop();
@@ -143,6 +144,7 @@ private Q_SLOTS:
 	void on_actionRestoreSetup_triggered();
 
 	void on_actionConnect_triggered();
+	void on_actionReloadDecoders_triggered();
 
 	void on_add_decoder_clicked();
 	void on_add_math_signal_clicked();
@@ -165,6 +167,7 @@ private:
 	QAction *const action_restore_setup_;
 	QAction *const action_save_setup_;
 	QAction *const action_connect_;
+	QAction *const action_reload_decoders_;
 
 	QToolButton *new_view_button_, *open_button_, *save_button_;
 
@@ -185,6 +188,7 @@ private:
 
 #ifdef ENABLE_DECODE
 	QToolButton *add_decoder_button_;
+	QToolButton *reload_decoders_button_;
 #endif
 
 	QToolButton *add_math_signal_button_;
