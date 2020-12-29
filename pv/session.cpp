@@ -27,6 +27,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QTemporaryFile>
 
 #include "devicemanager.hpp"
 #include "mainwindow.hpp"
@@ -1027,6 +1028,77 @@ void Session::remove_decode_signal(shared_ptr<data::DecodeSignal> signal)
 
 	signals_changed();
 }
+
+void Session::reload_protocol_decoders()
+{
+	QTemporaryFile temporarySettingsFile;
+	temporarySettingsFile.open();
+	QSettings temporarySettings(temporarySettingsFile.fileName(), QSettings::IniFormat);
+
+	qDebug() << QString("Stashing decoder settings");
+
+	std::vector<QString> signal_setting_names;
+	int i = 0;
+	for (shared_ptr<data::SignalBase> s : signalbases_) {
+		if (s->is_decode_signal()) {
+			qDebug() << QString("Stashing decode signal 0x%1").arg((unsigned long)s.get(), 0, 16);
+			QString name = QString("decode_signal_temp%1").arg(i++);
+			temporarySettings.beginGroup(name);
+			signal_setting_names.push_back(name);
+			s->save_settings(temporarySettings);
+			temporarySettings.endGroup();
+		}
+	}
+
+	qDebug() << QString("Halting decoders");
+	for (shared_ptr<data::SignalBase> s : signalbases_) {
+		if (s->is_decode_signal()) {
+			dynamic_cast<data::DecodeSignal&>(*s).reset_decode(true);
+		}
+	}
+
+	qDebug() << QString("Dropping signal base references");
+	signalbases_.clear();
+
+	qDebug() << QString("Clearing views and decoders");
+    // Remove all stored data and reset all views
+	for (shared_ptr<views::ViewBase> view : views_) {
+		view->clear_signalbases();
+		view->clear_decode_signals();
+		view->reset_view_state();
+	}
+
+	qDebug() << QString("Unloading decoders");
+
+	srd_decoder_unload_all();
+
+	qDebug() << QString("Deinitializing libsigrokdecode");
+	srd_exit();
+
+	qDebug() << QString("Reinitializing libsigrokdecode");
+	if (srd_init(nullptr) != SRD_OK) {
+		qDebug() << "ERROR: libsigrokdecode reinit failed.";
+	}
+
+	qDebug() << QString("Reloading decoders");
+	assert(srd_decoder_load_all() == SRD_OK);
+
+	qDebug() << QString("Updating signals");
+	
+	update_signals();
+
+	qDebug() << QString("Restoring decoder settings");
+
+	for (QString name : signal_setting_names) {
+		temporarySettings.beginGroup(name);
+		shared_ptr<data::DecodeSignal> signal = add_decode_signal();
+		signal->restore_settings(temporarySettings);
+		temporarySettings.endGroup();
+	}
+
+	qDebug() << QString("Done reloading");
+}
+
 #endif
 
 bool Session::all_segments_complete(uint32_t segment_id) const

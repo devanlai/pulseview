@@ -206,6 +206,7 @@ public:
 	shared_ptr<data::DecodeSignal> add_decode_signal();
 
 	void remove_decode_signal(shared_ptr<data::DecodeSignal> signal);
+	void reload_protocol_decoders(void);
 #endif
 
 	bool all_segments_complete(uint32_t segment_id) const;
