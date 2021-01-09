@@ -262,6 +262,24 @@ bool DecodeSignal::is_paused() const
 	return decode_paused_;
 }
 
+void DecodeSignal::unload_decoders()
+{
+	// Stop decoding, terminate our session, and cleanup decoder instances
+	reset_decode(true);
+
+	// Remove all decoders from the stack
+	for (auto iter = stack_.rbegin(); iter != stack_.rend(); iter++) {
+		shared_ptr<Decoder> dec = *iter;
+		decoder_removed(dec.get());
+	}
+
+	stack_.clear();
+
+	// Clear channel mappings
+	stack_config_changed_ = true;
+	update_channel_list();
+}
+
 const vector<decode::DecodeChannel> DecodeSignal::get_channels() const
 {
 	return channels_;

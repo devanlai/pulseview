@@ -48,6 +48,7 @@ class Row: public QObject
 
 public:
 	Row();
+	virtual ~Row();
 
 	Row(uint32_t index, Decoder* decoder,
 		const srd_decoder_annotation_row* srd_row = nullptr);

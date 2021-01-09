@@ -240,6 +240,7 @@ private:
 
 	void initialize_row_widgets(DecodeTraceRow* r, unsigned int row_id);
 	void update_rows();
+	void drop_rows();
 
 	/**
 	 * Sets row r to expanded state without forcing an update of the view

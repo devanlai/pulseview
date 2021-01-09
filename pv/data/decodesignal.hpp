@@ -116,6 +116,13 @@ public:
 	void resume_decode();
 	bool is_paused() const;
 
+	/**
+	 * Stop decoding and drop all references to libsigrokdecode decoders
+	 * and decoder instances in preparation for unloading (and later reloading)
+	 * all decoders.
+	 */
+	void unload_decoders();
+
 	const vector<decode::DecodeChannel> get_channels() const;
 	void auto_assign_signals(const shared_ptr<Decoder> dec);
 	void assign_signal(const uint16_t channel_id, shared_ptr<const SignalBase> signal);

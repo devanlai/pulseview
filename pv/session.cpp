@@ -1051,22 +1051,20 @@ void Session::reload_protocol_decoders()
 	}
 
 	qDebug() << QString("Halting decoders");
+	std::vector<shared_ptr<data::DecodeSignal>> decode_signals;
 	for (shared_ptr<data::SignalBase> s : signalbases_) {
 		if (s->is_decode_signal()) {
-			dynamic_cast<data::DecodeSignal&>(*s).reset_decode(true);
+			shared_ptr<data::DecodeSignal> d = dynamic_pointer_cast<data::DecodeSignal>(s);
+			qDebug() << QString("Halting DecodeSignal 0x%1").arg((unsigned long)d.get(), 0, 16);
+			d->unload_decoders();
+			decode_signals.push_back(d);
+			for (shared_ptr<views::ViewBase>& view : views_) {
+				view->remove_decode_signal(d);
+			}
 		}
 	}
 
-	qDebug() << QString("Dropping signal base references");
-	signalbases_.clear();
 
-	qDebug() << QString("Clearing views and decoders");
-    // Remove all stored data and reset all views
-	for (shared_ptr<views::ViewBase> view : views_) {
-		view->clear_signalbases();
-		view->clear_decode_signals();
-		view->reset_view_state();
-	}
 
 	qDebug() << QString("Unloading decoders");
 
@@ -1089,12 +1087,24 @@ void Session::reload_protocol_decoders()
 
 	qDebug() << QString("Restoring decoder settings");
 
+	int j = 0;
 	for (QString name : signal_setting_names) {
 		temporarySettings.beginGroup(name);
-		shared_ptr<data::DecodeSignal> signal = add_decode_signal();
+		//shared_ptr<data::DecodeSignal> signal = add_decode_signal();
+		shared_ptr<data::DecodeSignal> signal = decode_signals[j++];
+		qDebug() << QString("Restoring DecodeSignal 0x%1").arg((unsigned long)signal.get(), 0, 16);
 		signal->restore_settings(temporarySettings);
 		temporarySettings.endGroup();
+
+		// TODO: need to add back to the appropriate view...
+		// Add the decode signal to all views
+		for (shared_ptr<views::ViewBase>& view : views_)
+			view->add_decode_signal(signal);
 	}
+
+	qDebug() << QString("Updating signals again");
+	
+	update_signals();
 
 	qDebug() << QString("Done reloading");
 }
@@ -1138,6 +1148,7 @@ void Session::set_capture_state(capture_state state)
 void Session::update_signals()
 {
 	if (!device_) {
+		qDebug() << "Clearing everything (!device_) fast path";
 		signalbases_.clear();
 		logic_data_.reset();
 		for (shared_ptr<views::ViewBase>& view : views_) {
@@ -1153,6 +1164,7 @@ void Session::update_signals()
 
 	const shared_ptr<sigrok::Device> sr_dev = device_->device();
 	if (!sr_dev) {
+		qDebug() << "Clearing everything (!sr_dev) fast path";
 		signalbases_.clear();
 		logic_data_.reset();
 		for (shared_ptr<views::ViewBase>& view : views_) {
@@ -1164,6 +1176,7 @@ void Session::update_signals()
 		return;
 	}
 
+	qDebug() << "Recreate signalbase containers or whatever";
 	// Detect what data types we will receive
 	auto channels = sr_dev->channels();
 	unsigned int logic_channel_count = count_if(
@@ -1242,6 +1255,7 @@ void Session::update_signals()
 		}
 	}
 
+	qDebug() << "Update all views";
 	// Update all views
 	for (shared_ptr<views::ViewBase>& viewbase : views_) {
 		vector< shared_ptr<SignalBase> > view_signalbases =
@@ -1272,6 +1286,7 @@ void Session::update_signals()
 		}
 	}
 
+	qDebug() << "Signal change callback";
 	signals_changed();
 }
 

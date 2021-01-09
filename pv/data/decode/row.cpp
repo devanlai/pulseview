@@ -19,6 +19,8 @@
 
 #include <cassert>
 
+#include <QDebug>
+
 #include "decoder.hpp"
 #include "row.hpp"
 
@@ -42,6 +44,12 @@ Row::Row(uint32_t index, Decoder* decoder, const srd_decoder_annotation_row* srd
 	srd_row_(srd_row),
 	visible_(true)
 {
+	qDebug() << QString("Creating PV row 0x%1").arg((unsigned long)this, 0, 16) << QString(" referencing PV decoder 0x%1").arg((unsigned long)decoder, 0, 16);
+}
+
+Row::~Row()
+{
+	qDebug() << QString("Destructing PV row 0x%1").arg((unsigned long)this, 0, 16) << QString(" referencing PV decoder 0x%1").arg((unsigned long)decoder_, 0, 16);
 }
 
 const Decoder* Row::decoder() const

@@ -64,6 +64,7 @@ Decoder::Decoder(const srd_decoder *const dec, uint8_t stack_level) :
 	visible_(true),
 	decoder_inst_(nullptr)
 {
+	qDebug() << QString("Creating PV Decoder 0x%1").arg((unsigned long)this, 0, 16);
 	// Query the annotation output classes
 	uint32_t i = 0;
 	for (GSList *l = dec->annotations; l; l = l->next) {
@@ -117,6 +118,7 @@ Decoder::~Decoder()
 {
 	for (auto& option : options_)
 		g_variant_unref(option.second);
+	qDebug() << QString("Destructed PV Decoder 0x%1").arg((unsigned long)this, 0, 16);
 }
 
 const srd_decoder* Decoder::get_srd_decoder() const

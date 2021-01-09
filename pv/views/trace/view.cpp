@@ -418,6 +418,8 @@ void View::add_decode_signal(shared_ptr<data::DecodeSignal> signal)
 		new DecodeTrace(session_, signal, decode_traces_.size()));
 	decode_traces_.push_back(d);
 
+	qDebug() << QString("View 0x%1").arg((unsigned long)this, 0, 16) << QString(" create DecodeTrace 0x%1 dependent upon DecodeSignal ").arg((unsigned long)(d.get()), 0, 16) << QString("0x%1").arg((unsigned long)signal.get(), 0, 16);
+
 	d->set_segment_display_mode(segment_display_mode_);
 	d->set_current_segment(current_segment_);
 
@@ -429,6 +431,8 @@ void View::remove_decode_signal(shared_ptr<data::DecodeSignal> signal)
 {
 	for (auto i = decode_traces_.begin(); i != decode_traces_.end(); i++)
 		if ((*i)->base() == signal) {
+			qDebug() << QString("View 0x%1").arg((unsigned long)this, 0, 16) << QString(" drop DecodeTrace 0x%1 dependent upon DecodeSignal ").arg((unsigned long)(i->get()), 0, 16) << QString("0x%1").arg((unsigned long)signal.get(), 0, 16);
+			remove_trace(std::static_pointer_cast<Trace>(*i));
 			decode_traces_.erase(i);
 			break;
 		}

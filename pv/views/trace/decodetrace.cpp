@@ -215,6 +215,7 @@ DecodeTrace::DecodeTrace(pv::Session &session,
 	default_marker_shape_ << QPoint(0,         -ArrowSize);
 	default_marker_shape_ << QPoint(ArrowSize,  0);
 	default_marker_shape_ << QPoint(0,          ArrowSize);
+	qDebug() << QString("Creating DecodeTrace 0x%1").arg((unsigned long)this, 0, 16) << QString(" referencing DecodeSignal 0x%1").arg((unsigned long)decode_signal_.get(), 0, 16);
 }
 
 DecodeTrace::~DecodeTrace()
@@ -229,6 +230,7 @@ DecodeTrace::~DecodeTrace()
 		delete r.header_container;
 		delete r.container;
 	}
+	qDebug() << QString("Destructing DecodeTrace 0x%1").arg((unsigned long)this, 0, 16) << QString(" referencing DecodeSignal 0x%1").arg((unsigned long)decode_signal_.get(), 0, 16);
 }
 
 bool DecodeTrace::enabled() const
@@ -1385,6 +1387,7 @@ void DecodeTrace::update_rows()
 
 			rows_.push_back(nr);
 			r = &rows_.back();
+			qDebug() << QString("Creating DecodeTraceRow row 0x%1").arg((unsigned long)r, 0, 16) << QString(" referencing PV Row 0x%1").arg((unsigned long)decode_row, 0, 16);
 			initialize_row_widgets(r, row_id);
 		} else
 			r = &(*r_it);
@@ -1404,6 +1407,37 @@ void DecodeTrace::update_rows()
 
 		for (unsigned int i = 0; i < rows_.size(); i++)
 			if (!rows_[i].exists) {
+				qDebug() << QString("Deleting PV DecodeTraceRow 0x%1").arg((unsigned long)&rows_[i], 0, 16) << QString(" referencing PV Row 0x%1").arg((unsigned long)rows_[i].decode_row, 0, 16);
+				delete rows_[i].row_visibility_checkbox;
+
+				for (QCheckBox* cb : rows_[i].selectors)
+					delete cb;
+
+				delete rows_[i].selector_container;
+				delete rows_[i].header_container;
+				delete rows_[i].container;
+
+				rows_.erase(rows_.begin() + i);
+				any_exists = true;
+				break;
+			}
+	} while (any_exists);
+}
+
+void DecodeTrace::drop_rows()
+{
+	lock_guard<mutex> lock(row_modification_mutex_);
+
+	for (DecodeTraceRow& r : rows_)
+		r.exists = false;
+
+	bool any_exists;
+	do {
+		any_exists = false;
+
+		for (unsigned int i = 0; i < rows_.size(); i++)
+			if (!rows_[i].exists) {
+				qDebug() << QString("Deleting PV DecodeTraceRow 0x%1").arg((unsigned long)&rows_[i], 0, 16) << QString(" referencing PV Row 0x%1").arg((unsigned long)rows_[i].decode_row, 0, 16);
 				delete rows_[i].row_visibility_checkbox;
 
 				for (QCheckBox* cb : rows_[i].selectors)
