@@ -98,6 +98,7 @@ MainBar::MainBar(Session &session, QWidget *parent, pv::views::trace::View *view
 	action_restore_setup_(new QAction(this)),
 	action_save_setup_(new QAction(this)),
 	action_connect_(new QAction(this)),
+	action_reload_decoders_(new QAction(this)),
 	new_view_button_(new QToolButton()),
 	open_button_(new QToolButton()),
 	save_button_(new QToolButton()),
@@ -269,6 +270,18 @@ MainBar::MainBar(Session &session, QWidget *parent, pv::views::trace::View *view
 	channels_button_.setToolTip(tr("Configure Channels"));
 	channels_button_.setIcon(QIcon(":/icons/channels.svg"));
 
+	// Setup the reload decoders button
+#ifdef ENABLE_DECODE
+	reload_decoders_button_ = new QToolButton();
+	reload_decoders_button_->setAutoRaise(true);
+	reload_decoders_button_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	reload_decoders_button_->setToolTip(tr("Reload protocol decoders"));
+	reload_decoders_button_->setIcon(QIcon(":/icons/reload-decoders.svg"));
+
+	connect(reload_decoders_button_, SIGNAL(clicked()),
+		this, SLOT(on_actionReloadDecoders_triggered()));
+#endif
+
 	add_toolbar_widgets();
 
 	sample_count_.installEventFilter(this);
@@ -337,6 +350,11 @@ QAction* MainBar::action_save_selection_as() const
 QAction* MainBar::action_connect() const
 {
 	return action_connect_;
+}
+
+QAction* MainBar::action_reload_decoders() const
+{
+	return action_reload_decoders_;
 }
 
 void MainBar::update_sample_rate_selector()
@@ -912,6 +930,12 @@ void MainBar::on_add_math_signal_clicked()
 	session_.add_generated_signal(signal);
 }
 
+void MainBar::on_actionReloadDecoders_triggered()
+{
+	session_.reload_protocol_decoders();
+}
+
+
 void MainBar::add_toolbar_widgets()
 {
 	addWidget(new_view_button_);
@@ -932,6 +956,7 @@ void MainBar::add_toolbar_widgets()
 	addWidget(add_decoder_button_);
 #endif
 	addWidget(add_math_signal_button_);
+	addWidget(reload_decoders_button_);
 }
 
 bool MainBar::eventFilter(QObject *watched, QEvent *event)

@@ -27,6 +27,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QTemporaryFile>
 
 #include "devicemanager.hpp"
 #include "mainwindow.hpp"
@@ -1027,6 +1028,71 @@ void Session::remove_decode_signal(shared_ptr<data::DecodeSignal> signal)
 
 	signals_changed();
 }
+
+void Session::reload_protocol_decoders()
+{
+	// Find all decode signals
+	std::vector<shared_ptr<data::DecodeSignal>> decode_signals;
+	for (shared_ptr<data::SignalBase> s : signalbases_) {
+		if (s->is_decode_signal()) {
+			auto decode_signal = dynamic_pointer_cast<data::DecodeSignal>(s);
+			decode_signals.push_back(decode_signal);
+		}
+	}
+
+	// Create a temporary settings file to save the decoder settings
+	// while we're reloading libsrd so that we can restore them afterwards
+	QTemporaryFile tmp_settings_file;
+	tmp_settings_file.open();
+	QSettings tmp_settings(tmp_settings_file.fileName(), QSettings::IniFormat);
+
+	// Save the settings for each decoder
+	int num_decode_signals = decode_signals.size();
+	tmp_settings.beginWriteArray("tmp_decode_signal", num_decode_signals);
+	for (int i=0; i < num_decode_signals; i++) {
+		tmp_settings.setArrayIndex(i);
+		decode_signals[i]->save_settings(tmp_settings);
+	}
+	tmp_settings.endArray();
+
+	// Halt and remove all signals using libsrd decoders
+	for (shared_ptr<data::DecodeSignal> d : decode_signals) {
+		// Stop decoding
+		d->reset_decode(true);
+
+		// Remove from the session / view
+		remove_decode_signal(d);
+	}
+
+	// Drop references to decode signals and trigger destructors
+	decode_signals.clear();
+
+	// Deinit libsrd to stop the Python interpreter
+	int status = srd_exit();
+	if (status != SRD_OK)
+		qDebug() << "ERROR: libsigrokdecode deinit failed.";
+
+	// Restart libsrd with a new Python interpreter and empty imported
+	// module cache
+	status = srd_init(nullptr);
+	if (status != SRD_OK)
+		qDebug() << "ERROR: libsigrokdecode reinit failed.";
+
+	// Load all decoders anew
+	status = srd_decoder_load_all();
+	if (status != SRD_OK)
+		qDebug() << "ERROR: libsigrok decoder load failed.";
+
+	// Recreate decoder signals from the temporary settings
+	tmp_settings.beginReadArray("tmp_decode_signal");
+	for (int i=0; i < num_decode_signals; i++) {
+		tmp_settings.setArrayIndex(i);
+		auto decode_signal = add_decode_signal();
+		decode_signal->restore_settings(tmp_settings);
+	}
+	tmp_settings.endArray();
+}
+
 #endif
 
 bool Session::all_segments_complete(uint32_t segment_id) const
