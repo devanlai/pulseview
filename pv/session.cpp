@@ -1055,17 +1055,17 @@ void Session::reload_protocol_decoders()
 	}
 	tmp_settings.endArray();
 
-	// Halt and remove all signals using libsrd decoders
-	for (shared_ptr<data::DecodeSignal> d : decode_signals) {
-		// Stop decoding
-		d->reset_decode(true);
-
-		// Remove from the session / view
-		remove_decode_signal(d);
+	// Halt all signals using libsrd decoders and drop all libsrd references
+	for (shared_ptr<data::DecodeSignal> decode_signal : decode_signals) {
+		decode_signal->unload_decoders();
+		// Remove the decode signal from all views to ensure no annotation
+		// rows or similar UI elements directly reference libsrd decoders
+		for (shared_ptr<views::ViewBase>& view : views_)
+			view->remove_decode_signal(decode_signal);
 	}
 
-	// Drop references to decode signals and trigger destructors
-	decode_signals.clear();
+	// Ensure old annotation rows are dropped
+	signals_changed();
 
 	// Deinit libsrd to stop the Python interpreter
 	int status = srd_exit();
@@ -1083,14 +1083,19 @@ void Session::reload_protocol_decoders()
 	if (status != SRD_OK)
 		qDebug() << "ERROR: libsigrok decoder load failed.";
 
-	// Recreate decoder signals from the temporary settings
+	// Restore decoder signals from the temporary settings
 	tmp_settings.beginReadArray("tmp_decode_signal");
 	for (int i=0; i < num_decode_signals; i++) {
 		tmp_settings.setArrayIndex(i);
-		auto decode_signal = add_decode_signal();
-		decode_signal->restore_settings(tmp_settings);
+		decode_signals[i]->restore_settings(tmp_settings);
+
+		for (shared_ptr<views::ViewBase>& view : views_)
+			view->add_decode_signal(decode_signals[i]);
 	}
 	tmp_settings.endArray();
+
+	// Redraw the re-added traces
+	signals_changed();
 }
 
 #endif

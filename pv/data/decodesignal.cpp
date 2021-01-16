@@ -124,6 +124,24 @@ void DecodeSignal::remove_decoder(int index)
 	begin_decode();
 }
 
+void DecodeSignal::unload_decoders()
+{
+	// Stop decoding, terminate our session, and cleanup decoder instances
+	reset_decode(true);
+
+	// Remove all decoders from the stack
+	for (auto iter = stack_.rbegin(); iter != stack_.rend(); iter++) {
+		shared_ptr<Decoder> dec = *iter;
+		decoder_removed(dec.get());
+	}
+
+	stack_.clear();
+
+	// Clear channel mappings
+	stack_config_changed_ = true;
+	update_channel_list();
+}
+
 bool DecodeSignal::toggle_decoder_visibility(int index)
 {
 	auto iter = stack_.cbegin();
