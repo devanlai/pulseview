@@ -1033,7 +1033,7 @@ void Session::reload_protocol_decoders()
 {
 	// Find all decode signals
 	std::vector<shared_ptr<data::DecodeSignal>> decode_signals;
-	for (shared_ptr<data::SignalBase> s : signalbases_) {
+	for (shared_ptr<data::SignalBase>& s : signalbases_) {
 		if (s->is_decode_signal()) {
 			auto decode_signal = dynamic_pointer_cast<data::DecodeSignal>(s);
 			decode_signals.push_back(decode_signal);
@@ -1056,7 +1056,7 @@ void Session::reload_protocol_decoders()
 	tmp_settings.endArray();
 
 	// Halt all signals using libsrd decoders and drop all libsrd references
-	for (shared_ptr<data::DecodeSignal> decode_signal : decode_signals) {
+	for (shared_ptr<data::DecodeSignal>& decode_signal : decode_signals) {
 		decode_signal->unload_decoders();
 		// Remove the decode signal from all views to ensure no annotation
 		// rows or similar UI elements directly reference libsrd decoders
